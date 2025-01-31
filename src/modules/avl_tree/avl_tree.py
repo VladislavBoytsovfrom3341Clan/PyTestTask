@@ -131,6 +131,58 @@ class AVLTree:
         node = self._find(self._root, val)
         return node.val if node else None
 
+    def _remove_min(self, root: Node | None)-> Node | None:
+        """
+        Removes node with minimal val in the root subtree recursively.
+        Balances tree and returns its root
+        """
+        if root is None:
+            return root
+        if root.left is None:
+            return root.right
+        root.left = self._remove_min(root.left)
+        return self._balance(root)
+
+    def _remove_max(self, root: Node | None) -> Node | None:
+        """
+        Removes node with maximal val in the root subtree recursively.
+        Balances tree and returns its root
+        """
+        if root is None:
+            return root
+        if root.right is None:
+            return root.left
+        root.right = self._remove_max(root.right)
+        return self._balance(root)
+
+    def _remove(self, node: Node | None, val: Any) -> Node | None:
+        """
+        Removes val from subtree node if has one.
+        Performs binary search to gwt to the val.
+        Returns balanced root of subtree
+        """
+        if node is None:
+            return node
+        if val < node.val:
+            node.left = self._remove(node.left, val)
+        elif val > node.val:
+            node.right = self._remove(node.right, val)
+        else:   #val found
+            if node.right is None:
+                return node.left
+            next_node: AVLTree.Node | None = self._get_min(node.right)
+            next_node.right = self._remove_min(node.right)
+            next_node.left = node.left
+            return self._balance(next_node)
+        return self._balance(node)
+
+    def remove(self, val: Any) -> None:
+        """Removes val from tree if has one, otherwise does nothing"""
+        if val in self:
+            self._root = self._remove(self._root, val)
+            self.size -= 1
+
+
     def _in_order(self, node: None | Node, result: list) -> None:
         if node is not None:
             self._in_order(node.left, result)
@@ -172,9 +224,9 @@ class AVLTree:
                 if  search_queue[0] is None:
                     ret_list[-1].append([None, None])
                 else:
-                    num_of_new_children+=handle_child(search_queue[0].left) + handle_child(search_queue[0].right)
+                    num_of_new_children += handle_child(search_queue[0].left) + handle_child(search_queue[0].right)
                     search_queue.popleft()  #current node is handled
-                    counted_children-=1
+                    counted_children -= 1
             counted_children += num_of_new_children
 
         return ret_list

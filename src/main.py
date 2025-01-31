@@ -6,5 +6,9 @@ if __name__ == "__main__":
         print(i)
         a.insert(i)
         print(len(a))
-        print(a.breadth_first_search())
+        #print(a.breadth_first_search())
     print(420 in a)
+    for i in range(100):
+        a.remove(i)
+        print(len(a))
+        print(a.breadth_first_search())
