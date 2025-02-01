@@ -357,6 +357,18 @@ class AVLTree:
             temp_tree_root = temp_tree_root.parent
         self._root = self._balance(self._root)
 
+    def split(self, key):
+        """Naive implementation of splitting a tree into two. Need to replace"""
+        t1 = AVLTree()
+        t2 = AVLTree()
+        traversed = self.in_order()
+        for i in traversed:
+            if i<=key:
+                t1.insert(i)
+            else:
+                t2.insert(i)
+        return t1, t2
+
 
     def breadth_first_search(self) -> list[list[Any | None]]:
         """
