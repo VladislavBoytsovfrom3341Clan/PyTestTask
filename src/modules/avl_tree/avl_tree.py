@@ -32,6 +32,9 @@ class AVLTree:
         """Returns the height of a node, handling None as 0."""
         return 0 if root is None else root.height
 
+    def height(self):
+        return self._height(self._root)
+
     def _balance_factor(self, root: None | Node) -> int:
         """Returns the difference in heights of the left and right subtrees"""
         if root is None:
@@ -57,6 +60,11 @@ class AVLTree:
             node.right.parent = node
         temp.left = node
         temp.parent = node.parent
+        if node.parent is not None:
+            if node == node.parent.left:
+                node.parent.left = temp
+            else:
+                node.parent.right = temp
         node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
@@ -72,6 +80,11 @@ class AVLTree:
             node.left.parent = node
         temp.right = node
         temp.parent = node.parent
+        if node.parent is not None:
+            if node == node.parent.left:
+                node.parent.left = temp
+            else:
+                node.parent.right = temp
         node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
@@ -103,6 +116,20 @@ class AVLTree:
         if node is None or node.right is None:
             return node
         return self._get_max(node.right)
+
+    def min(self) -> Any:
+        """Returns minimal value in the tree"""
+        temp = self._get_min(self._root)
+        if temp is None:
+            raise RuntimeError("Tree is empty")
+        return temp.val
+
+    def max(self) -> Any:
+        """Returns maximal value in the tree"""
+        temp = self._get_max(self._root)
+        if temp is None:
+            raise RuntimeError("Tree is empty")
+        return temp.val
 
     def _insert(self, node: None | Node, val: Any) -> Node:
         """
@@ -195,6 +222,8 @@ class AVLTree:
             if node.right is None:
                 return node.left
             next_node: AVLTree.Node | None = self._get_min(node.right)
+
+            #node is to be replaced with next_node
             next_node.right = self._remove_min(node.right)
             if next_node.right is not None:
                 next_node.right.parent = next_node
@@ -230,6 +259,7 @@ class AVLTree:
                 (root.right is None or root.right.val >= root.val)
         )
 
+        #checks connections between nodes
         parentness = (
                 (root.left is None or root.left.parent == root) and
                 (root.right is None or root.right.parent == root)
@@ -251,6 +281,8 @@ class AVLTree:
         if node.right is not None:
             return self._get_min(node.right)
         temp: AVLTree.Node | None = node.parent
+
+        #finds a successor such that node is a left child
         while temp is not None and temp.right == node:
             node = temp
             temp = temp.parent
@@ -267,6 +299,37 @@ class AVLTree:
         result = []
         self._in_order(self._root, result)
         return result
+
+    def merge(self, tree: "AVLTree"):
+        """
+        Merges two trees in self - self and tree - if
+        self.min() > tree.max() and self.height() >= tree.height()
+        """
+        if self.min() <= tree.max() or self.height()< tree.height():
+            raise RuntimeError("Impossible to merge trees")
+
+        temp_tree_root = tree._get_max(tree._root)
+        tree._root = tree._remove_max(tree._root)
+
+        insert_after_node = self._root
+        while insert_after_node.left and self._height(insert_after_node) > tree.height():
+            insert_after_node = insert_after_node.left
+
+        temp_tree_root.left = tree._root
+        if tree._root:
+            tree._root.parent = temp_tree_root
+
+        temp_tree_root.right = insert_after_node.left
+        if insert_after_node.left:
+            insert_after_node.left.parent = temp_tree_root
+
+        insert_after_node.left = temp_tree_root
+        temp_tree_root.parent = insert_after_node
+
+        while temp_tree_root is not None:
+            temp_tree_root = self._balance(temp_tree_root)
+            temp_tree_root = temp_tree_root.parent
+
 
     def breadth_first_search(self) -> list[list[Any | None]]:
         """
