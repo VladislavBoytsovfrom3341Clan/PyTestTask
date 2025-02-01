@@ -302,23 +302,27 @@ class AVLTree:
 
     def merge(self, tree: "AVLTree"):
         """
-        Merges two trees in self - self and tree - if
+        Merges two trees - self and tree - into self if
         self.min() > tree.max() and self.height() >= tree.height()
         """
         if self.min() <= tree.max() or self.height()< tree.height():
             raise RuntimeError("Impossible to merge trees")
 
+        #gets max element from tree as root for a temp tree
         temp_tree_root = tree._get_max(tree._root)
         tree._root = tree._remove_max(tree._root)
 
+        #finds a node from self to place the tree after
         insert_after_node = self._root
         while insert_after_node.left and self._height(insert_after_node) > tree.height():
             insert_after_node = insert_after_node.left
 
+        #places originally tree
         temp_tree_root.left = tree._root
         if tree._root:
             tree._root.parent = temp_tree_root
 
+        #inserts temp tree between found node and an old tree
         temp_tree_root.right = insert_after_node.left
         if insert_after_node.left:
             insert_after_node.left.parent = temp_tree_root
@@ -326,9 +330,11 @@ class AVLTree:
         insert_after_node.left = temp_tree_root
         temp_tree_root.parent = insert_after_node
 
-        while temp_tree_root is not None:
+        #balancing
+        while temp_tree_root.parent is not None:
             temp_tree_root = self._balance(temp_tree_root)
             temp_tree_root = temp_tree_root.parent
+        self._root = self._balance(self._root)
 
 
     def breadth_first_search(self) -> list[list[Any | None]]:
