@@ -1,6 +1,7 @@
-from platform import android_ver
 from typing import Any
 from collections import deque
+
+from src.modules.avl_tree.avl_tree_iterator import AVLTreeIterator
 
 class AVLTree:
     """
@@ -12,6 +13,7 @@ class AVLTree:
             self.val: Any = val
             self.left: AVLTree.Node | None = None
             self.right: AVLTree.Node | None = None
+            self.parent: AVLTree.Node | None = None
             self.height: int = 1
 
 
@@ -21,6 +23,9 @@ class AVLTree:
 
     def __len__(self):
         return self.size
+
+    def __iter__(self):
+        return AVLTreeIterator(self)
 
     @staticmethod
     def _height(root: Node | None) -> int:
@@ -48,7 +53,11 @@ class AVLTree:
             return node
         temp: None | AVLTree.Node = node.right
         node.right = temp.left
+        if node.right is not None:
+            node.right.parent = node
         temp.left = node
+        temp.parent = node.parent
+        node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
         return temp
@@ -59,7 +68,11 @@ class AVLTree:
             return node
         temp: None | AVLTree.Node = node.left
         node.left = temp.right
+        if node.left is not None:
+            node.left.parent = node
         temp.right = node
+        temp.parent = node.parent
+        node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
         return temp
@@ -91,7 +104,7 @@ class AVLTree:
             return node
         return self._get_max(node.right)
 
-    def _insert(self, node: None | Node, val: Any) -> None | Node:
+    def _insert(self, node: None | Node, val: Any) -> Node:
         """
         Inserts val in subtree with root node recursively.
         Uses binary search.
@@ -101,8 +114,10 @@ class AVLTree:
             return AVLTree.Node(val)
         if val < node.val:
             node.left = self._insert(node.left, val)
+            node.left.parent = node
         else:
             node.right = self._insert(node.right, val)
+            node.right.parent = node
         return self._balance(node)
 
     def insert(self, val: Any):
@@ -142,6 +157,8 @@ class AVLTree:
         if root.left is None:
             return root.right
         root.left = self._remove_min(root.left)
+        if root.left is not None:
+            root.left.parent = root
         return self._balance(root)
 
     def _remove_max(self, root: Node | None) -> Node | None:
@@ -154,6 +171,8 @@ class AVLTree:
         if root.right is None:
             return root.left
         root.right = self._remove_max(root.right)
+        if root.right is not None:
+            root.right.parent = root
         return self._balance(root)
 
     def _remove(self, node: Node | None, val: Any) -> Node | None:
@@ -166,14 +185,23 @@ class AVLTree:
             return node
         if val < node.val:
             node.left = self._remove(node.left, val)
+            if node.left is not None:
+                node.left.parent = node
         elif val > node.val:
             node.right = self._remove(node.right, val)
+            if node.right is not None:
+                node.right.parent = node
         else:   #val found
             if node.right is None:
                 return node.left
             next_node: AVLTree.Node | None = self._get_min(node.right)
             next_node.right = self._remove_min(node.right)
+            if next_node.right is not None:
+                next_node.right.parent = next_node
             next_node.left = node.left
+            if next_node.left is not None:
+                next_node.left.parent = next_node
+            next_node.parent = node.parent
             return self._balance(next_node)
         return self._balance(node)
 
@@ -202,13 +230,31 @@ class AVLTree:
                 (root.right is None or root.right.val >= root.val)
         )
 
+        parentness = (
+                (root.left is None or root.left.parent == root) and
+                (root.right is None or root.right.parent == root)
+        )
+
         # If AVL balance is violated, BST properties are violated, or a subtree is invalid, return -1
-        if abs(left_height - right_height) > 1 or not is_bst or left_height == -1 or right_height == -1:
+        if abs(left_height - right_height) > 1 or not is_bst or left_height == -1 or right_height == -1 or not parentness:
             return -1
         return max(left_height, right_height) + 1
 
     def check(self):
         return self._check_subtree(self._root) != -1
+
+    def _successor(self, node: Node) -> Node | None:
+        """
+        Finds the in-order successor of a given node.
+        Returns the next node in in-order traversal, or None if no successor exists.
+        """
+        if node.right is not None:
+            return self._get_min(node.right)
+        temp: AVLTree.Node | None = node.parent
+        while temp is not None and temp.right == node:
+            node = temp
+            temp = temp.parent
+        return temp
 
     def _in_order(self, node: None | Node, result: list) -> None:
         if node is not None:
