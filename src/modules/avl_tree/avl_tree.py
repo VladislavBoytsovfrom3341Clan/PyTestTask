@@ -6,7 +6,8 @@ from src.modules.avl_tree.avl_tree_iterator import AVLTreeIterator
 class AVLTree:
     """
     Self-balancing binary search tree.
-    Supports insertion, search and remove operations
+    Supports insertion, search and remove operations,
+    as well as merge.
     """
     class Node:
         def __init__(self, val: Any):
@@ -323,6 +324,8 @@ class AVLTree:
         Merges two trees - self and tree - into self if
         self.min() > tree.max() and self.height() >= tree.height()
         """
+        if self._root is None:
+            raise RuntimeError("Empty tree")
         if self.min() <= tree.max() or self.height()< tree.height():
             raise RuntimeError("Impossible to merge trees")
 
@@ -390,6 +393,7 @@ class AVLTree:
             counted_children += num_of_new_children
 
         return ret_list
+
 
 
 
