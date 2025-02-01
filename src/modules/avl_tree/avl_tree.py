@@ -182,6 +182,8 @@ class AVLTree:
         if root is None:
             return root
         if root.left is None:
+            if root.right is not None:
+                root.right.parent = root.parent
             return root.right
         root.left = self._remove_min(root.left)
         if root.left is not None:
@@ -196,6 +198,8 @@ class AVLTree:
         if root is None:
             return root
         if root.right is None:
+            if root.left is not None:
+                root.left.parent = root.parent
             return root.left
         root.right = self._remove_max(root.right)
         if root.right is not None:
@@ -211,27 +215,29 @@ class AVLTree:
         if node is None:
             return node
         if val < node.val:
-            node.left = self._remove(node.left, val)
+            node.right = self._remove(node.right, val)
             if node.left is not None:
                 node.left.parent = node
         elif val > node.val:
-            node.right = self._remove(node.right, val)
+            node.left = self._remove(node.left, val)
             if node.right is not None:
                 node.right.parent = node
         else:   #val found
-            if node.right is None:
-                return node.left
-            next_node: AVLTree.Node | None = self._get_min(node.right)
-
-            #node is to be replaced with next_node
-            next_node.right = self._remove_min(node.right)
-            if next_node.right is not None:
-                next_node.right.parent = next_node
-            next_node.left = node.left
-            if next_node.left is not None:
-                next_node.left.parent = next_node
-            next_node.parent = node.parent
-            return self._balance(next_node)
+            left = node.left
+            right = node.right
+            if right is None:
+                if left is not None:
+                    left.parent = node.parent
+                return left
+            min_node = self._get_min(right)
+            min_node.right = self._remove_min(right)
+            if min_node.right is not None:
+                min_node.right.parent = min_node
+            min_node.left = left
+            if min_node.left is not None:
+                min_node.left.parent = min_node
+            min_node.parent = node.parent
+            return self._balance(min_node)
         return self._balance(node)
 
     def remove(self, val: Any) -> None:
@@ -259,14 +265,26 @@ class AVLTree:
                 (root.right is None or root.right.val >= root.val)
         )
 
+        if not is_bst:
+            print("BST", root.val, root.left.val, root.right.val)
+
         #checks connections between nodes
         parentness = (
                 (root.left is None or root.left.parent == root) and
                 (root.right is None or root.right.parent == root)
         )
 
+        if not parentness:
+            print("parent")
+
+        if abs(left_height - right_height) > 1:
+            print("Balance", left_height, right_height)
+
         # If AVL balance is violated, BST properties are violated, or a subtree is invalid, return -1
         if abs(left_height - right_height) > 1 or not is_bst or left_height == -1 or right_height == -1 or not parentness:
+            l=[]
+            self._in_order(root, l)
+            print(l)
             return -1
         return max(left_height, right_height) + 1
 
@@ -372,6 +390,7 @@ class AVLTree:
             counted_children += num_of_new_children
 
         return ret_list
+
 
 
 
