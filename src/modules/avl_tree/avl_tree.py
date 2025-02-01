@@ -1,10 +1,11 @@
+from platform import android_ver
 from typing import Any
 from collections import deque
 
 class AVLTree:
     """
     Self-balancing binary search tree.
-    Supports insertion and search operations
+    Supports insertion, search and remove operations
     """
     class Node:
         def __init__(self, val: Any):
@@ -182,6 +183,32 @@ class AVLTree:
             self._root = self._remove(self._root, val)
             self.size -= 1
 
+
+    def _check_subtree(self, root: Node | None) -> int:
+        """Self-checks tree for AVL properties.
+        Ignores Node.height, calculates real height by nodes
+        Returns -1 if check has failed or height of the tree if it is correct
+        """
+        if root is None:
+            return 0
+
+        #recursively gets heights of subtrees
+        left_height = self._check_subtree(root.left)
+        right_height = self._check_subtree(root.right)
+
+        #checks BST properties
+        is_bst = (
+                (root.left is None or root.left.val <= root.val) and
+                (root.right is None or root.right.val >= root.val)
+        )
+
+        # If AVL balance is violated, BST properties are violated, or a subtree is invalid, return -1
+        if abs(left_height - right_height) > 1 or not is_bst or left_height == -1 or right_height == -1:
+            return -1
+        return max(left_height, right_height) + 1
+
+    def check(self):
+        return self._check_subtree(self._root) != -1
 
     def _in_order(self, node: None | Node, result: list) -> None:
         if node is not None:
