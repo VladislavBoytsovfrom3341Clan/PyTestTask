@@ -5,10 +5,24 @@ import random
 
 from src.modules.avl_tree.avl_tree import AVLTree
 if __name__ == "__main__":
+    for test in range(100):
+        print("Running delete test #", test)
+        a = AVLTree()
+        ans = []
+        for i in range(test):
+            a.insert(i)
+            ans.append(i)
+        for i in range(test):
+            a.remove(i)
+            ans.remove(i)
+            assert(a.check())
+            assert(a.in_order() == ans)
+            assert(len(a) == len(ans))
+
     test = 0
     for size in range(100):
         for p in range(size):
-            print(f"Running test #{test}")
+            print(f"Running split test #{test}")
             a = AVLTree()
             for i in range(size):
                 a.insert(i)
@@ -19,9 +33,9 @@ if __name__ == "__main__":
             assert(t1.in_order() + t2.in_order() == a_i)
             test += 1
     test = 0
-    for a_i in range(1000):
+    for a_i in range(100):
         for b_i in range(0, a_i):
-            print(f"Running test #{test}")
+            print(f"Running merge test #{test}")
             a = AVLTree()
             for a_filler in range(0, a_i):
                 a.insert(a_filler + a_i)

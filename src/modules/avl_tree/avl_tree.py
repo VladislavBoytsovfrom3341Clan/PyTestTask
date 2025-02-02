@@ -7,7 +7,7 @@ class AVLTree:
     """
     Self-balancing binary search tree.
     Supports insertion, search and remove operations,
-    as well as merge.
+    as well as merge and split.
     """
     class Node:
         def __init__(self, val: Any):
@@ -492,6 +492,8 @@ class AVLTree:
                     p_parent = p.parent
 
                     # removing parentness for merge to not fuck up
+                    if p.parent:
+                        p.parent.left = None
                     p.parent = None
                     k = self._merge(p, right_subtree_min_node)
 
