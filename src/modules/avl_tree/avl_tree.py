@@ -16,14 +16,14 @@ class AVLTree:
             self.right: AVLTree.Node | None = None
             self.parent: AVLTree.Node | None = None
             self.height: int = 1
+            self.subtree_size: int = 1
 
 
     def __init__(self):
         self._root: AVLTree.Node | None = None
-        self.size = 0
 
     def __len__(self):
-        return self.size
+        return self._size(self._root)
 
     def __iter__(self):
         return AVLTreeIterator(self)
@@ -32,6 +32,11 @@ class AVLTree:
     def _height(root: Node | None) -> int:
         """Returns the height of a node, handling None as 0."""
         return 0 if root is None else root.height
+
+    @staticmethod
+    def _size(root: Node | None) -> int:
+        """Returns number of elements in subtree with root root"""
+        return 0 if root is None else root.subtree_size
 
     def height(self):
         return self._height(self._root)
@@ -51,6 +56,14 @@ class AVLTree:
         if root is not None:
             root.height = max(self._height(root.left), self._height(root.right)) + 1
 
+    def _fix_size(self, root: Node | None) -> None:
+        """
+        Considering the sizes of the left and right subtrees to be correct,
+        sets the size value of root
+        """
+        if root is not None:
+            root.subtree_size = self._size(root.left) + self._size(root.right) + 1
+
     def _left_rotate(self, node: None | Node) -> None | Node:
         """Performs a left rotation, making the right child the new root."""
         if node is None:
@@ -69,6 +82,8 @@ class AVLTree:
         node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
+        self._fix_size(node)
+        self._fix_size(temp)
         return temp
 
     def _right_rotate(self, node: None | Node) -> None | Node:
@@ -89,11 +104,14 @@ class AVLTree:
         node.parent = temp
         self._fix_height(node)
         self._fix_height(temp)
+        self._fix_size(node)
+        self._fix_size(temp)
         return temp
 
     def _balance(self, node: None|Node) -> None | Node:
         """Balances a node if its subtrees no longer satisfy the AVL properties"""
         self._fix_height(node)
+        self._fix_size(node)
         if self._balance_factor(node) <= -2:    #checks for left rotation
             if self._balance_factor(node.right) > 0:
                 node.right = self._right_rotate(node.right)
@@ -105,6 +123,13 @@ class AVLTree:
             return self._right_rotate(node)
 
         return node
+
+    def _balance_up(self, node) -> "AVLTree.Node":
+        """Balances subtree from node to its root"""
+        while node.parent is not None:
+            node = self._balance(node)
+            node = node.parent
+        return self._balance(node)
 
     def _get_min(self, node: None | Node) -> None | Node:
         """Returns node with minimal value in all subtree recursively"""
@@ -151,7 +176,6 @@ class AVLTree:
     def insert(self, val: Any):
         """Inserts a val into the tree"""
         self._root = self._insert(self._root, val)
-        self.size += 1
 
     def _find(self, node: None | Node, val: Any) -> None | Node:
         """
@@ -185,6 +209,8 @@ class AVLTree:
         if root.left is None:
             if root.right is not None:
                 root.right.parent = root.parent
+            else:
+                root.parent = None
             return root.right
         root.left = self._remove_min(root.left)
         if root.left is not None:
@@ -201,6 +227,8 @@ class AVLTree:
         if root.right is None:
             if root.left is not None:
                 root.left.parent = root.parent
+            else:
+                root.parent = None
             return root.left
         root.right = self._remove_max(root.right)
         if root.right is not None:
@@ -216,11 +244,11 @@ class AVLTree:
         if node is None:
             return node
         if val < node.val:
-            node.right = self._remove(node.right, val)
+            node.left = self._remove(node.left, val)
             if node.left is not None:
                 node.left.parent = node
         elif val > node.val:
-            node.left = self._remove(node.left, val)
+            node.right = self._remove(node.right, val)
             if node.right is not None:
                 node.right.parent = node
         else:   #val found
@@ -230,6 +258,8 @@ class AVLTree:
                 if left is not None:
                     left.parent = node.parent
                 return left
+
+            #replacing node with min_node
             min_node = self._get_min(right)
             min_node.right = self._remove_min(right)
             if min_node.right is not None:
@@ -246,8 +276,8 @@ class AVLTree:
         if self._root is None:
             raise RuntimeError("Tree is empty")
         if val in self:
+            print("removing ", val)
             self._root = self._remove(self._root, val)
-            self.size -= 1
 
 
     def _check_subtree(self, root: Node | None) -> int:
@@ -321,6 +351,35 @@ class AVLTree:
         self._in_order(self._root, result)
         return result
 
+    def _merge(self, bigger_root: "AVLTree.Node", smaller_root: "AVLTree.Node") -> "AVLTree.Node":
+        """
+        Merges smaller_root tree into bigger_root tree.
+        """
+        # gets max element from tree as root for a temp tree
+        temp_tree_root = self._get_max(smaller_root)
+        smaller_root = self._remove_max(smaller_root)
+
+        # finds a node from self to place the tree after
+        insert_after_node = bigger_root
+        while insert_after_node.left and self._height(insert_after_node) > self._height(smaller_root):
+            insert_after_node = insert_after_node.left
+
+        # places originally tree
+        temp_tree_root.left = smaller_root
+        if smaller_root:
+            smaller_root.parent = temp_tree_root
+
+        # inserts temp tree between found node and an old tree
+        temp_tree_root.right = insert_after_node.left
+        if insert_after_node.left:
+            insert_after_node.left.parent = temp_tree_root
+
+        insert_after_node.left = temp_tree_root
+        temp_tree_root.parent = insert_after_node
+
+        # balancing
+        return self._balance_up(temp_tree_root)
+
     def merge(self, tree: "AVLTree"):
         """
         Merges two trees - self and tree - into self if
@@ -333,33 +392,8 @@ class AVLTree:
         if self.min() <= tree.max() or self.height()< tree.height():
             raise RuntimeError("Impossible to merge trees")
 
-        #gets max element from tree as root for a temp tree
-        temp_tree_root = tree._get_max(tree._root)
-        tree._root = tree._remove_max(tree._root)
+        self._root = self._merge(self._root, tree._root)
 
-        #finds a node from self to place the tree after
-        insert_after_node = self._root
-        while insert_after_node.left and self._height(insert_after_node) > tree.height():
-            insert_after_node = insert_after_node.left
-
-        #places originally tree
-        temp_tree_root.left = tree._root
-        if tree._root:
-            tree._root.parent = temp_tree_root
-
-        #inserts temp tree between found node and an old tree
-        temp_tree_root.right = insert_after_node.left
-        if insert_after_node.left:
-            insert_after_node.left.parent = temp_tree_root
-
-        insert_after_node.left = temp_tree_root
-        temp_tree_root.parent = insert_after_node
-
-        #balancing
-        while temp_tree_root.parent is not None:
-            temp_tree_root = self._balance(temp_tree_root)
-            temp_tree_root = temp_tree_root.parent
-        self._root = self._balance(self._root)
 
     def naive_split(self, key):
         """Naive implementation of splitting a tree into two. Need to replace"""
@@ -373,6 +407,122 @@ class AVLTree:
                 t2.insert(i)
         return t1, t2
 
+    def split(self, x: Any) -> tuple["AVLTree", "AVLTree"]:
+        """
+        Splits self in two AVLTrees t1 and t2 such as
+        t1.max() <= x and t2.min() > x.
+        Recursively goes down at self,
+        merging half of each subtree with t1 or t2
+        Time complexity: O(log^2 n)
+        """
+        t1 = AVLTree() # all values <= x
+        t2 = AVLTree() # all values > x
+
+        def _detach(node):
+            """Auxiliary func that erase all links to node"""
+            if node.right is not None:
+                node.right.parent = None
+                node.right = None
+            if node.left is not None:
+                node.left.parent = None
+                node.left = None
+            return node
+
+        current_root = self._root
+        while current_root is not None:
+            if current_root.val <= x:
+                right_subtree = current_root.right
+                left_subtree = current_root.left
+
+                # deleting current_root from subtree, deleting all links
+                current_root = _detach(current_root)
+
+                # left_subtree is AVL
+                # adding current_root after max of left_subtree
+                left_subtree_max_node = self._get_max(left_subtree)
+
+                if left_subtree_max_node:
+                    left_subtree_max_node.right = current_root
+                    left_subtree_max_node.right.parent = left_subtree_max_node
+                    left_subtree_max_node = self._balance_up(left_subtree_max_node)
+                else:
+                    left_subtree_max_node = current_root
+
+                # merging t1 and built tree
+                if t1._root is None:
+                    # WARNING: idk how to fix size of trees
+                    t1._root = left_subtree_max_node
+                else:
+                    #finds subtree p in t1: p.height <= left_subtree_max_node.height
+                    p = t1._root
+                    while p.right and self._height(p) > self._height(left_subtree_max_node):
+                        p = p.right
+                    p_parent = p.parent
+
+                    # removing parentness for merge to not fuck up
+                    if p.parent:
+                        p.parent.right = None
+                    p.parent = None
+
+                    k = self._merge(left_subtree_max_node, p)
+
+                    # attaching merged tree
+                    if p_parent:
+                        p_parent.right = k
+                        k.parent = p_parent
+                        p_parent = self._balance_up(p_parent)
+                        if p_parent.parent is None:
+                            t1._root = p_parent
+                    else:
+                        t1._root = k
+                current_root = right_subtree # goes deeper
+
+            else: # current_root.val > x
+                right_subtree = current_root.right
+                left_subtree = current_root.left
+
+                # deleting current_root from subtree, deleting all links
+                current_root = _detach(current_root)
+
+                # right_subtree is AVL
+                # adding current_root after min of right_subtree
+                right_subtree_min_node = self._get_min(right_subtree)
+
+                if right_subtree_min_node:
+                    right_subtree_min_node.left = current_root
+                    right_subtree_min_node.left.parent = right_subtree_min_node
+                    right_subtree_min_node = self._balance_up(right_subtree_min_node)
+                else:
+                    right_subtree_min_node = current_root
+
+                # merging t2 and built tree
+                if t2._root is None:
+                    # WARNING: idk how to fix size of trees
+                    t2._root = right_subtree_min_node
+                else:
+                    # finds subtree p in t2: p.height <= right_subtree_min_node.height
+                    p = t2._root
+                    while p.left and self._height(p) > self._height(right_subtree_min_node):
+                        p = p.left
+                    p_parent = p.parent
+
+                    # removing parentness for merge to not fuck up
+                    p.parent = None
+                    k = self._merge(p, right_subtree_min_node)
+
+                    # attaching merged tree
+                    if p_parent:
+                        p_parent.left = k
+                        k.parent = p_parent
+                        p_parent = self._balance_up(p_parent)
+                        if p_parent.parent is None:
+                            t2._root = p_parent
+                    else:
+                        t2._root = k
+                current_root = left_subtree  # goes deeper
+        t1._root = t1._balance(t1._root)
+        t2._root = t2._balance(t2._root)
+        return t1, t2
 
     def breadth_first_search(self) -> list[list[Any | None]]:
         """
@@ -383,7 +533,7 @@ class AVLTree:
         if self._root is None:
             return [[None]]
         search_queue = deque([self._root])
-        ret_list = [[self._root.val]]
+        ret_list = [[self._root.val, self._root.subtree_size]]
         counted_children = 1    #children found for each layer
 
         def handle_child(node): #checks child and appends it to deque and its value to ret_list
@@ -392,7 +542,7 @@ class AVLTree:
                 ret_list[-1].append(None)
             else:
                 search_queue.append(node)
-                ret_list[-1].append(node.val)
+                ret_list[-1].append((node.val, node.height, node.subtree_size))
                 counted = 1
             return counted
 
