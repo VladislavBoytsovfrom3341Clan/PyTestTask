@@ -276,7 +276,6 @@ class AVLTree:
         if self._root is None:
             raise RuntimeError("Tree is empty")
         if val in self:
-            print("removing ", val)
             self._root = self._remove(self._root, val)
 
 
@@ -298,26 +297,14 @@ class AVLTree:
                 (root.right is None or root.right.val >= root.val)
         )
 
-        if not is_bst:
-            print("BST", root.val, root.left.val, root.right.val)
-
         #checks connections between nodes
         parentness = (
                 (root.left is None or root.left.parent == root) and
                 (root.right is None or root.right.parent == root)
         )
 
-        if not parentness:
-            print("parent")
-
-        if abs(left_height - right_height) > 1:
-            print("Balance", left_height, right_height)
-
         # If AVL balance is violated, BST properties are violated, or a subtree is invalid, return -1
         if abs(left_height - right_height) > 1 or not is_bst or left_height == -1 or right_height == -1 or not parentness:
-            l=[]
-            self._in_order(root, l)
-            print(l)
             return -1
         return max(left_height, right_height) + 1
 
@@ -450,7 +437,6 @@ class AVLTree:
 
                 # merging t1 and built tree
                 if t1._root is None:
-                    # WARNING: idk how to fix size of trees
                     t1._root = left_subtree_max_node
                 else:
                     #finds subtree p in t1: p.height <= left_subtree_max_node.height
@@ -497,7 +483,6 @@ class AVLTree:
 
                 # merging t2 and built tree
                 if t2._root is None:
-                    # WARNING: idk how to fix size of trees
                     t2._root = right_subtree_min_node
                 else:
                     # finds subtree p in t2: p.height <= right_subtree_min_node.height
