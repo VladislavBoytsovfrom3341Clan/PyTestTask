@@ -243,6 +243,8 @@ class AVLTree:
 
     def remove(self, val: Any) -> None:
         """Removes val from tree if has one, otherwise does nothing"""
+        if self._root is None:
+            raise RuntimeError("Tree is empty")
         if val in self:
             self._root = self._remove(self._root, val)
             self.size -= 1
@@ -326,6 +328,8 @@ class AVLTree:
         """
         if self._root is None:
             raise RuntimeError("Empty tree")
+        if tree._root is None:
+            return
         if self.min() <= tree.max() or self.height()< tree.height():
             raise RuntimeError("Impossible to merge trees")
 
@@ -357,7 +361,7 @@ class AVLTree:
             temp_tree_root = temp_tree_root.parent
         self._root = self._balance(self._root)
 
-    def split(self, key):
+    def naive_split(self, key):
         """Naive implementation of splitting a tree into two. Need to replace"""
         t1 = AVLTree()
         t2 = AVLTree()

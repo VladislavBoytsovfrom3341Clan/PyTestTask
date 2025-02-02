@@ -3,10 +3,10 @@ from typing import Any
 class AssociativeArray:
     """
     Simple class that implements an associative array
-     on a hash table with collision resolution using chaining.
-     Insert, find, and delete methods are available.
-     The array size is constant
-     """
+    on a hash table with collision resolution using chaining.
+    Insert, find, and delete methods are available.
+    The array size is constant
+    """
     def __init__(self, size=10):
         self.size = size
         self.table = [[] for _ in range(size)]
